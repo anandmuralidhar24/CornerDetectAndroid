@@ -32,9 +32,9 @@ private:
     int width, height;
 
     GLuint  vertexBuffer;
-    GLuint  vertexAttribute;     // attributes for shader variables
+    GLuint  vertexAttribute;
     GLuint  shaderProgramID;
-    GLint   textureSamplerLocation;    // location of MVP in the shader
+    GLint   textureSamplerLocation;
     GLuint  textureNameInGL;
 
 };

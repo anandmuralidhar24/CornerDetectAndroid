@@ -55,6 +55,16 @@ Java_com_anandmuralidhar_cornerdetectandroid_CornerDetectActivity_DeleteObjectNa
     gHelperObject = NULL;
 }
 
+JNIEXPORT void JNICALL
+Java_com_anandmuralidhar_cornerdetectandroid_CornerDetectActivity_SetCameraPreviewDimsNative(
+        JNIEnv *env, jobject instance, jint previewWidth, jint previewHeight) {
+
+    if (gCornerObject == NULL) {
+        return;
+    }
+    gCornerObject->SetCameraPreviewDims((int) previewWidth, (int) previewHeight);
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -22,8 +22,6 @@ import android.content.DialogInterface;
 import android.content.res.AssetManager;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
-import android.view.MotionEvent;
-import android.view.View;
 
 
 public class CornerDetectActivity extends Activity{
@@ -34,6 +32,7 @@ public class CornerDetectActivity extends Activity{
 
     private native void CreateObjectNative(AssetManager assetManager, String pathToInternalDir);
     private native void DeleteObjectNative();
+    private native void SetCameraPreviewDimsNative(int previewWidth, int previewHeight);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,11 +44,17 @@ public class CornerDetectActivity extends Activity{
         // call the native constructors to create an object
         CreateObjectNative(assetManager, pathToInternalDir);
 
+        mCameraObject = new CameraClass();
+        if(!mCameraObject.IsResolutionSupported()) {
+            ShowExitDialog(this, getString(R.string.exit_no_resolution));
+            return;
+        }
+        SetCameraPreviewDimsNative(mCameraObject.GetPreviewWidth(), mCameraObject.GetPreviewHeight());
+
         // layout has only two components, a GLSurfaceView and a TextView
         setContentView(R.layout.corner_layout);
         mGLView = (MyGLSurfaceView) findViewById (R.id.gl_surface_view);
 
-        mCameraObject = new CameraClass();
     }
 
     @Override
@@ -66,8 +71,9 @@ public class CornerDetectActivity extends Activity{
             mGLView.onResume();
         }
 
+        // initialize the camera again in case activity was paused and resumed
         mCameraObject.InitializeCamera();
-        mCameraObject.StartCameraPreview();
+        mCameraObject.StartCamera();
 
     }
 
@@ -95,7 +101,8 @@ public class CornerDetectActivity extends Activity{
 
     }
 
-    public static void ShowExitDialog(final Activity activity, String exitMessage){
+    public void ShowExitDialog(final Activity activity, String exitMessage){
+        appIsExiting = true;
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(activity);
         alertDialogBuilder.setMessage(exitMessage)
                 .setCancelable(false)

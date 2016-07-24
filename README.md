@@ -1,5 +1,14 @@
 CornerDetectAndroid
 ===================
+This project focuses on a close integration between the device camera, OpenCV, and OpenGL ES. 
+- It processes images from device’s camera in native code.
+- Then detects feature points using OpenCV’s ORB detector and highlights them in the image.
+- Finally renders the image with GLES.
+
+A blog describing this project:
+http://www.anandmuralidhar.com/blog/android/corners
+
+The project will run on devices with ABI armeabi-v7a.
 
 License
 -------

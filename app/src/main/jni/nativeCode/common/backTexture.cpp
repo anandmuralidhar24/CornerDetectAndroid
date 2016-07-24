@@ -17,18 +17,23 @@
 #include "backTexture.h"
 #include "myShader.h"
 
+/**
+ * Create a RGB image from camera's preview data and send it to native class
+ */
 BackTexture::BackTexture(int width, int height) {
 
     shaderProgramID = LoadShaders("back.vsh", "back.fsh");
     textureSamplerLocation = GetUniformLocation(shaderProgramID, "textureSampler");
     vertexAttribute = GetAttributeLocation(shaderProgramID, "vertexPosition");
 
+    // create a VBO representing a quad that covers the display
     const GLfloat vertices[] = {-1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f };
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8, vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    // create an empty texture that will be filled with image to be displayed
     this->width = width;
     this->height = height;
     glGenTextures(1, &textureNameInGL);
@@ -42,15 +47,38 @@ BackTexture::BackTexture(int width, int height) {
     CheckGLError("BackTexture::BackTexture");
 }
 
+/**
+ * Load opencv image into the texture
+ */
+bool BackTexture::LoadBackImg(cv::Mat backImage) {
+
+    if(backImage.rows!=height || backImage.cols!=width) {
+        MyLOGE("Image size does not match texture dims");
+        return false;
+    }
+
+    // bind the texture
+    glBindTexture(GL_TEXTURE_2D, textureNameInGL);
+    // Update GLES texture with the OpenCV Mat
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE,
+                    backImage.data);
+    CheckGLError("BackTexture::LoadBackImg");
+    return true;
+}
+
+/**
+ * Render a quad and send texture to shader
+ */
 void BackTexture::Render() {
 
-    // loading background texture
     glUseProgram(shaderProgramID);
 
+    // load background texture
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(textureSamplerLocation, 0);
     glBindTexture( GL_TEXTURE_2D, textureNameInGL);
 
+    // load vertices of the quad
     glEnableVertexAttribArray(vertexAttribute);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
@@ -62,24 +90,5 @@ void BackTexture::Render() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     CheckGLError("BackTexture::Render");
-}
-
-bool BackTexture::LoadBackImg(cv::Mat backImage) {
-
-    if(backImage.rows!=height || backImage.cols!=width) {
-        MyLOGE("Image size does not match texture dims");
-        return false;
-    }
-
-    // bind the texture
-    glBindTexture(GL_TEXTURE_2D, textureNameInGL);
-    // specify linear filtering
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // load the OpenCV Mat into GLES
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE,
-                    backImage.data);
-    CheckGLError("BackTexture::LoadBackImg");
-    return true;
 }
 

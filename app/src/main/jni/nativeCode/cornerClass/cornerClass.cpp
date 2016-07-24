@@ -29,26 +29,33 @@ CornerClass::CornerClass() {
 
     MyLOGD("CornerClass::CornerClass");
     initsDone = false;
+    back = NULL;
 
 }
 
 CornerClass::~CornerClass() {
 
     MyLOGD("CornerClass::CornerClass");
+    if(back) {
+        delete back;
+        back = NULL;
+    }
 }
 
 /**
- * Perform inits and load the triangle's vertices/colors to GLES
+ * Perform inits, create objects for detecting corners and rendering image
  */
 void CornerClass::PerformGLInits() {
 
     MyLOGD("CornerClass::PerformGLInits");
 
     MyGLInits();
-    back = new BackTexture(1280, 720);
-    newCameraImage = false;
-    cornerDetector = cv::ORB::create();
+
+    back = new BackTexture(cameraPreviewWidth, cameraPreviewHeight);
+    cornerDetector = cv::ORB::create(); // choosing ORB detector with default parameters
+
     CheckGLError("CornerClass::PerformGLInits");
+    newCameraImage = false;
     initsDone = true;
 }
 
@@ -77,7 +84,6 @@ void CornerClass::Render() {
  */
 void CornerClass::SetViewport(int width, int height) {
 
-    MyLOGD("viewport width x height: %d x %d ", width, height);
     screenHeight = height;
     screenWidth = width;
     glViewport(0, 0, width, height);
@@ -85,24 +91,40 @@ void CornerClass::SetViewport(int width, int height) {
 
 }
 
-void CornerClass::ProcessCameraImage(uchar *data, int mPreview_width, int mPreview_height) {
+/**
+ * Save camera image, detect feature points in it, highlight them
+ */
+void CornerClass::ProcessCameraImage(cv::Mat cameraRGBImage, int mPreview_width, int mPreview_height) {
 
-    if(mPreview_height != back->GetHeight() || mPreview_width != back->GetWidth()) {
-        MyLOGE("Preview image dims do not match back texture size");
-    }
-    //YUV -> RGBA conversion
-    cv::Mat _yuv(mPreview_height * 1.5, mPreview_width, CV_8UC1, data);
     cameraMutex.lock();
-    cv::cvtColor(_yuv, cameraImageForBack, CV_YUV2RGB_NV21, 3);
+
+    cameraImageForBack = cameraRGBImage.clone();
+    // OpenCV image needs to be flipped for OpenGL
     cv::flip(cameraImageForBack, cameraImageForBack, 0);
+    DetectAndHighlightCorners();
+    newCameraImage = true; // indicate to Render() that a new image is available
+
+    cameraMutex.unlock();
+}
+
+/**
+ * Use the corner detector to find feature points and draw small circles around them
+ */
+void CornerClass::DetectAndHighlightCorners(){
 
     cornerDetector->detect(cameraImageForBack, keyPoints);
     for(int i=0;i<keyPoints.size();i++){
-            cv::circle(cameraImageForBack, keyPoints[i].pt, 5, cv::Scalar(0,255,0));
+
+        cv::circle(cameraImageForBack, keyPoints[i].pt, 5, cv::Scalar(255,0,0));
+
     }
+}
 
-    newCameraImage = true;
-    cameraMutex.unlock();
-//    cv::imwrite("/mnt/sdcard/Tryamble/cameraImageForBack.jpg", gCornerObject->cameraImageForBack);
+/**
+ * Camera preview dimensions are saved -- used later to initialize BackTexture object
+ */
+void CornerClass::SetCameraPreviewDims(int cameraPreviewWidth, int cameraPreviewHeight) {
 
+    this->cameraPreviewWidth = cameraPreviewWidth;
+    this->cameraPreviewHeight = cameraPreviewHeight;
 }

@@ -23,8 +23,11 @@ extern "C" {
 
 extern CornerClass *gCornerObject;
 
+/**
+ * Create a RGB image from camera's preview data and send it to native class
+ */
 JNIEXPORT void JNICALL
-Java_com_anandmuralidhar_cornerdetectandroid_CameraClass_sendCamImageToNative(JNIEnv *env,
+Java_com_anandmuralidhar_cornerdetectandroid_CameraClass_SendCamImageToNative(JNIEnv *env,
                                                                               jobject instance,
                                                                               jbyteArray data_,
                                                                               jint mPreview_height,
@@ -34,7 +37,14 @@ Java_com_anandmuralidhar_cornerdetectandroid_CameraClass_sendCamImageToNative(JN
     }
 
     jbyte *data = env->GetByteArrayElements(data_, NULL);
-    gCornerObject->ProcessCameraImage((uchar *) data, mPreview_width, mPreview_height);
+
+    // Android returns data in NV21 format, convert it to RGB
+    cv::Mat cameraNV21Image(mPreview_height * 1.5, mPreview_width, CV_8UC1, data);
+    cv::Mat cameraRGBImage;
+    cv::cvtColor(cameraNV21Image, cameraRGBImage, CV_YUV2RGB_NV21, 3);
+
+    gCornerObject->ProcessCameraImage(cameraRGBImage, mPreview_width, mPreview_height);
+
     env->ReleaseByteArrayElements(data_, data, 0);
 }
 

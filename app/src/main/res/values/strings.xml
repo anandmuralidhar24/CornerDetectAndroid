@@ -2,4 +2,5 @@
     <string name="app_name">CornerDetectAndroid</string>
     <string name="exit_no_sensor">Did not find sensors in device.</string>
     <string name="exit_no_reg_sensor">Unable to register sensors.</string>
+    <string name="exit_no_resolution">Device camera does not support preview resolution.</string>
 </resources>

@@ -35,16 +35,20 @@ public:
     void    PerformGLInits();
     void    Render();
     void    SetViewport(int width, int height);
-    void    ProcessCameraImage(uchar *data, int mPreview_width, int mPreview_height);
+    void    ProcessCameraImage(cv::Mat cameraRGBImage, int mPreview_width, int mPreview_height);
+    void    SetCameraPreviewDims(int cameraPreviewWidth, int cameraPreviewHeight);
 
 private:
+    void    DetectAndHighlightCorners();
+
     bool    initsDone;
     int     screenWidth, screenHeight;
     cv::Mat cameraImageForBack;
     BackTexture * back;
     bool    newCameraImage;
-    std::mutex cameraMutex;
+    int     cameraPreviewWidth, cameraPreviewHeight;
 
+    std::mutex cameraMutex;
     cv::Ptr<cv::Feature2D> cornerDetector;
     std::vector<cv::KeyPoint> keyPoints;
 };

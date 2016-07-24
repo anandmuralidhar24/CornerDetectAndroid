@@ -26,19 +26,30 @@ import java.util.List;
 
 public class CameraClass{
 
-    // Camera parameters
+    /**
+     * Choose back camera by default
+     */
     private static int cameraIndex = Camera.CameraInfo.CAMERA_FACING_BACK;
+    /**
+     * Camera preview resolution is 720p: 1280x720
+     */
     private int mPreviewWidth = 1280;
     private int mPreviewHeight = 720;
 
     private static Camera mCamera=null;
-    private SurfaceTexture testSurfaceTexture;
+    private SurfaceTexture dummySurfaceTexture;
     private byte mPreviewBuffer[] = null;
     private float cameraFOVLandscape=0, cameraFOVPortrait=0;
     private boolean isResolutionSupported = false;
     private static CameraHandlerThread mCameraThread = null;
+    public  int GetPreviewWidth(){ return mPreviewWidth; }
+    public  int GetPreviewHeight(){ return mPreviewHeight; }
+    public  boolean IsResolutionSupported(){ return isResolutionSupported; }
 
-    private native void sendCamImageToNative(byte [] data, int mPreviewHeight, int mPreviewWidth);
+    /**
+     * JNI call for sending camera image to native code for processing and display
+     */
+    private native void SendCamImageToNative(byte [] data, int mPreviewHeight, int mPreviewWidth);
 
     public CameraClass() {
 
@@ -46,6 +57,9 @@ public class CameraClass{
 
     }
 
+    /**
+     * Open the camera on a separate thread. Set its params and preview callback function
+     */
     void InitializeCamera() {
         
         if (mCamera != null) {
@@ -93,7 +107,7 @@ public class CameraClass{
 
         void OpenCamera() {
             mHandler.post(new Runnable() {
-                
+
                 @Override
                 public void run() {
                     try {
@@ -116,26 +130,29 @@ public class CameraClass{
     }
 
     /**
+     * Set camera callback function
      * Camera callbacks will occur on same thread in which open() was called
      */
     private void SetCameraCallback() {
 
-        //Setup callback with buffer
+        //Setup callback buffer
         if (mPreviewBuffer == null) {
             mPreviewBuffer = new byte[(int) (mPreviewWidth * mPreviewHeight * 1.5)];
         }
         mCamera.addCallbackBuffer(mPreviewBuffer);
         mCamera.setPreviewCallbackWithBuffer(MyPreviewCallback);
+
+        // use a dummy SurfaceTexture as PreviewTexture
         try {
-            testSurfaceTexture = new SurfaceTexture(10);
-            mCamera.setPreviewTexture(testSurfaceTexture);
+            dummySurfaceTexture = new SurfaceTexture(10);
+            mCamera.setPreviewTexture(dummySurfaceTexture);
         } catch (IOException e1) {
             Log.e("CameraClass",e1.getMessage());
         }
     }
 
     /**
-     * Only setup the preview resolution for callbacks
+     * Setup the camera's preview resolution
      */
     private void SetCameraParams() {
 
@@ -164,25 +181,9 @@ public class CameraClass{
         mCamera.setParameters(param);
     }
 
-
-    private void SaveCameraFOV(Camera.Parameters param) {
-
-        float fovXDeg = param.getHorizontalViewAngle();
-
-        if (fovXDeg <= 0. || fovXDeg >= 180.) {
-            cameraFOVPortrait = 45;
-            Log.d("CameraClass", "InValid FOV Detected! Setting default FOV value");
-        }
-
-        cameraFOVPortrait = fovXDeg;//This value is being returned correctly on Nexus 5, MotoG2
-        float cameraAspectRatio = (float)mPreviewWidth/mPreviewHeight;
-        cameraFOVLandscape = (float)(2*Math.atan(Math.tan((double)Math.toRadians(
-                (double)cameraFOVPortrait)/2) / cameraAspectRatio));
-        cameraFOVLandscape = (float)Math.toDegrees(cameraFOVLandscape);
-
-        Log.d("CameraClass", "FOV for Landscape " + cameraFOVLandscape);
-    }
-
+    /**
+     * Stop camera preview and quit the handler thread
+     */
     public void StopCamera() {
 
         // stop preview and release camera
@@ -202,7 +203,10 @@ public class CameraClass{
     }
 
 
-    public void StartCameraPreview() {
+    /**
+     * Start camera's preview callbacks
+     */
+    public void StartCamera() {
 
         try {
             Log.d("CameraClass","Starting camera preview");
@@ -213,18 +217,46 @@ public class CameraClass{
     }
 
 
+    /**
+     * Camera's preview callback: sends data containing camera image to native code
+     */
     private Camera.PreviewCallback MyPreviewCallback = new Camera.PreviewCallback() {
 
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
 
-//            Log.d("CameraClass","MyPreviewCallback");
-
-            sendCamImageToNative(data, mPreviewHeight, mPreviewWidth);
+            SendCamImageToNative(data, mPreviewHeight, mPreviewWidth);
 
             //Return buffer to camera
             camera.addCallbackBuffer(data);
         }
     };
+
+
+    /**
+     * Save camera's field-of-view for later use in native code
+     */
+    private void SaveCameraFOV(Camera.Parameters param) {
+
+        // getHorizontalViewAngle returns horizontal FOV in landscape
+        // it corresponds to vertical FOV for portrait mode
+        float fovXDeg = param.getHorizontalViewAngle();
+
+        if (fovXDeg <= 0. || fovXDeg >= 180.) {
+            cameraFOVPortrait = 45;
+            Log.d("CameraClass", "InValid FOV Detected! Setting default FOV value");
+        }
+
+        //This value is being returned correctly on Nexus 5, MotoG2
+        cameraFOVPortrait = fovXDeg;
+
+        // calculate vertical FOV for landscape mode
+        float cameraAspectRatio = (float)mPreviewWidth/mPreviewHeight;
+        cameraFOVLandscape = (float)(2*Math.atan(Math.tan(Math.toRadians(
+                (double)cameraFOVPortrait)/2) / cameraAspectRatio));
+        cameraFOVLandscape = (float)Math.toDegrees(cameraFOVLandscape);
+
+        Log.d("CameraClass", "FOV for Landscape " + cameraFOVLandscape);
+    }
 
 }
