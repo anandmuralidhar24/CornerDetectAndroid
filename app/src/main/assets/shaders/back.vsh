@@ -14,6 +14,7 @@
  *    limitations under the License.
  */
 
+// shader associated with BackTexture
 
 attribute   vec2 vertexPosition;
 varying     vec2 textureCoords;

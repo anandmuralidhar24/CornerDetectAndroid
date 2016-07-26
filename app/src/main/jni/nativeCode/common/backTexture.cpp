@@ -22,7 +22,7 @@
  */
 BackTexture::BackTexture(int width, int height) {
 
-    shaderProgramID = LoadShaders("back.vsh", "back.fsh");
+    shaderProgramID = LoadShaders("shaders/back.vsh", "shaders/back.fsh");
     textureSamplerLocation = GetUniformLocation(shaderProgramID, "textureSampler");
     vertexAttribute = GetAttributeLocation(shaderProgramID, "vertexPosition");
 
