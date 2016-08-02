@@ -30,6 +30,7 @@ CornerClass::CornerClass() {
     MyLOGD("CornerClass::CornerClass");
     initsDone = false;
     back = NULL;
+    cornerDetector = cv::ORB::create(); // choosing ORB detector with default parameters
 
 }
 
@@ -52,7 +53,6 @@ void CornerClass::PerformGLInits() {
     MyGLInits();
 
     back = new BackTexture(cameraPreviewWidth, cameraPreviewHeight);
-    cornerDetector = cv::ORB::create(); // choosing ORB detector with default parameters
 
     CheckGLError("CornerClass::PerformGLInits");
     newCameraImage = false;
