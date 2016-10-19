@@ -53,7 +53,7 @@ model {
             platformVersion = 19
             moduleName = 'CornerNative' // this creates libCornerNative.so and should be loaded in Java
             stl        = 'gnustl_static'
-            abiFilters.addAll(['armeabi-v7a', 'x86'])
+            abiFilters.add('armeabi-v7a')
 
             // specify the path to jni code
             cppFlags.addAll(['-I' + file('src/main/jni/nativeCode/cornerClass'),
